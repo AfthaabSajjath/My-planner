@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Daily Planner</title>
+    <style>
+        :root {
+            --primary: #6200EE;
+            --accent: #03DAC6;
+            --bg: #F5F5F5;
+            --card: #FFFFFF;
+            --text: #333333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"], input[type="time"], select {
+            padding: 12px;
+            border: 2px solid #EEE;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+            font-size: 14px;
+        }
+
+        input[type="text"] { flex: 1 1 100%; }
+        input[type="time"] { flex: 1; }
+        select { flex: 2; background: white; }
+
+        input:focus, select:focus { border-color: var(--primary); }
+
+        button.add-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            width: 100%;
+        }
+
+        li {
+            background: #FFF;
+            margin-bottom: 10px;
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 5px solid var(--primary);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .task-info {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .task-details {
+            font-size: 0.8em;
+            color: #666;
+            font-weight: bold;
+            display: flex;
+            gap: 10px;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .completed {
+            text-decoration: line-through;
+            color: #888;
+            border-left-color: #CCC;
+        }
+
+        .delete-btn {
+            margin-left: auto;
+            color: #FF5252;
+            cursor: pointer;
+            font-weight: bold;
+            border: none;
+            background: none;
+        }
+
+        .stats {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+            border-top: 1px solid #EEE;
+            padding-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📅 My Planner</h1>
+
+        <div class="input-area">
+            <input type="text" id="taskInput" placeholder="What needs to be done?">
+            <div class="input-group">
+                <input type="time" id="timeInput">
+                <select id="soundSelect">
+                    <option value="mixkit_classic_alarm_995">Classic Alarm</option>
+                    <option value="mixkit_alert_alarm_1005">Alert Alarm</option>
+                    <option value="mixkit_facility_alarm_sound_999">Facility Alarm</option>
+                    <option value="mixkit_rooster_crowing_in_the_morning_2462">Rooster Crow</option>
+                    <option value="mixkit_digital_clock_digital_alarm_buzzer_992">Digital Buzzer</option>
+                    <option value="mixkit_retro_game_emergency_alarm_1000">Retro Alarm</option>
+                    <option value="mixkit_game_notification_wave_alarm_987">Game Wave</option>
+                    <option value="mixkit_sound_alert_in_hall_1006">Hall Alert</option>
+                    <option value="mixkit_interface_hint_notification_911">Hint Sound</option>
+                </select>
+            </div>
+            <button class="add-btn" onclick="addTask()">Add Task with Alarm</button>
+        </div>
+
+        <ul id="taskList">
+            <!-- Tasks will appear here -->
+        </ul>
+
+        <div class="stats">
+            <span id="taskCount">0</span> tasks remaining
+        </div>
+    </div>
+
+    <script>
+        const taskInput = document.getElementById('taskInput');
+        const timeInput = document.getElementById('timeInput');
+        const soundSelect = document.getElementById('soundSelect');
+        const taskList = document.getElementById('taskList');
+        const taskCount = document.getElementById('taskCount');
+
+        let tasks = JSON.parse(localStorage.getItem('plannerTasks')) || [];
+
+        function renderTasks() {
+            taskList.innerHTML = '';
+            tasks.sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+
+            tasks.forEach((task, index) => {
+                const li = document.createElement('li');
+                if (task.completed) li.classList.add('completed');
+
+                const timeDisplay = task.time ? `<span class="task-details">⏰ ${task.time}</span>` : '';
+
+                li.innerHTML = `
+                    <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${index})">
+                    <div class="task-info">
+                        <span>${task.text}</span>
+                        ${timeDisplay}
+                    </div>
+                    <button class="delete-btn" onclick="deleteTask(${index})">✕</button>
+                `;
+                taskList.appendChild(li);
+            });
+            updateStats();
+            localStorage.setItem('plannerTasks', JSON.stringify(tasks));
+        }
+
+        function addTask() {
+            const text = taskInput.value.trim();
+            const time = timeInput.value;
+            const sound = soundSelect.value;
+
+            if (text) {
+                const newTask = { text: text, time: time, sound: sound, completed: false };
+                tasks.push(newTask);
+
+                if (time && window.AndroidInterface) {
+                    window.AndroidInterface.setAlarm(text, time, sound);
+                }
+
+                taskInput.value = '';
+                timeInput.value = '';
+                renderTasks();
+            }
+        }
+
+        function toggleTask(index) {
+            tasks[index].completed = !tasks[index].completed;
+            renderTasks();
+        }
+
+        function deleteTask(index) {
+            tasks.splice(index, 1);
+            renderTasks();
+        }
+
+        function updateStats() {
+            const remaining = tasks.filter(t => !t.completed).length;
+            taskCount.innerText = remaining;
+        }
+
+        taskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTask();
+        });
+
+        renderTasks();
+    </script>
+</body>
+</html>
